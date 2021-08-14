@@ -2,10 +2,10 @@ package spring;
 
 import java.time.LocalDateTime;
 
-public class MemberRegisterSevice {
+public class MemberRegisterService {
 	private MemberDao memberDao;
 	
-	public MemberRegisterSevice(MemberDao memberDao) {
+	public MemberRegisterService(MemberDao memberDao) {
 		this.memberDao = memberDao;
 	}
 	
