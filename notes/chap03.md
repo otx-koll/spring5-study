@@ -103,3 +103,49 @@ LocalDateTime currentDateTime = LocalDateTime.now();
 LocalDateTime targetDateTime = LocalDateTime.of(2021, 3, 20, 22, 33, 44, 5555);
 // 결과 : 2021-03-20T22:33:44.000005555
 ```
+---
+## 자바 입출력 함수 BufferedReader/BuffredWrite
+
+- 버퍼를 이용해서 읽고 쓰는 함수
+- `버퍼(buffer)`
+    - 데이터를 한 곳에서 다른 한 곳으로 전송하는 동안 일싲거으로 그 데이터를 보관하는 임시 메모리 영역
+    - 입출력 속도 향상을 위해 버퍼 사용
+
+### BufferedReader
+
+- Enter만 경계로 인식하고 받은 데이터가 String으로 고정되기 때문에 데이터를 가공하는 작업이 필요한 경우가 많다.
+
+```java
+BufferedReader bf = new BufferedReader(new InputStreamReader(System.in));
+String s = bf.readLine(); // String
+int i = Integer.parseInt(bf.readLine()); // Int
+```
+
+1. 입력은 readLine() 메서드 이용한다. 리턴시 String으로 값이 고정되기 때문에 다른 타입으로 입력받고싶다면 형변환을 꼭 해주어야 한다.
+2. 예외처리를 해줘야한다. try&catch를 활용하여 예외처리를 해줘도 좋지만, 대개 throws IOException을 통하여 작업한다.
+
+```java
+StringTokenizer st = new StringTokenizer(s);
+int a = Integer.parseInt(st.nextToken()); //첫번째 호출
+int b = Integer.parseInt(st.nextToken()); //두번째 호출
+
+String array[] = s.split(" ");
+```
+
+읽어들인 데이터는 라인 단위로 나눠지기 때문에 데이터를 가공하려면 따로 작업을 해줘야 한다.
+
+1. StringTokenizer 에 nextToken()함수를 쓰면 readLine()을 통해 입력받은 값을 공백단위로 구분하여 순서대로 호출 가능
+2. String.split()함수를 활용하여 공백단위로 끊어서 데이터를 넣고 사용하는 방식
+
+### BufferedWriter
+
+```java
+BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+String s = "abcd"; //출력할 문자열
+bw.write(s+"\n"); //버퍼에 있는 값 전부 출력
+bw.flush(); //남아있는 데이터를 모두 출력시킴
+bw.close(); //스트림을 닫음
+```
+
+1. 버퍼를 잡아 놓았기 때문에 반드시 flush() / close() 를 반드시 호출하여 뒤처리를 해줘야 한다.
+2. bw.write에는 System.out.println()과 같이 자동개행기능이 없기 때문에 개행을 해주어야 할 경우, \n을 통해 따로 처리해야 한다.
