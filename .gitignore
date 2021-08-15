@@ -10,9 +10,19 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-### Maven Patch ###
-# Eclipse Core
+### Eclipse ###
+*.pydevproject
 .project
-# JDT-specific (Eclipse Java Development Tools)
+.metadata
+bin/**
+tmp/**
+tmp/**/*
+*.tmp
+*.bak
+*.swp
+*~.nib
 .classpath
+.settings/
+.loadpath
+/src/main/resources/rebel.xml
 
