@@ -79,6 +79,11 @@ public class MainForAssembler {
 	}
 	
 	private static void printHelp() {
-		
+		System.out.println();
+		System.out.println("잘못된 명령입니다. 아래 명령어 사용법을 확인하세요.");
+		System.out.println("명령어 사용법.");
+		System.out.println("new 이메일 이름 암호 암호확인");
+		System.out.println("change 이메일 현재비번 변경비번");
+		System.out.println();
 	}
 }
