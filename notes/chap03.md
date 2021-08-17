@@ -104,12 +104,13 @@ LocalDateTime targetDateTime = LocalDateTime.of(2021, 3, 20, 22, 33, 44, 5555);
 // 결과 : 2021-03-20T22:33:44.000005555
 ```
 ---
-## 자바 입출력 함수 BufferedReader/BuffredWrite
+## 자바 입출력 함수
 
 - 버퍼를 이용해서 읽고 쓰는 함수
 - `버퍼(buffer)`
-    - 데이터를 한 곳에서 다른 한 곳으로 전송하는 동안 일싲거으로 그 데이터를 보관하는 임시 메모리 영역
+    - 데이터를 한 곳에서 다른 한 곳으로 전송하는 동안 일시적으로 그 데이터를 보관하는 임시 메모리 영역
     - 입출력 속도 향상을 위해 버퍼 사용
+- `BufferedReader`, `BufferedWriter`
 
 ### BufferedReader
 
@@ -149,3 +150,89 @@ bw.close(); //스트림을 닫음
 
 1. 버퍼를 잡아 놓았기 때문에 반드시 flush() / close() 를 반드시 호출하여 뒤처리를 해줘야 한다.
 2. bw.write에는 System.out.println()과 같이 자동개행기능이 없기 때문에 개행을 해주어야 할 경우, \n을 통해 따로 처리해야 한다.
+
+
+## Collection
+- 데이터의 집합, 그룹을 의미한다
+
+![Untitled](https://t1.daumcdn.net/cfile/tistory/99B88F3E5AC70FB419)
+인터페이스|구현클래스|특징
+-|-|-
+Set|HashSet, TreeSet|순서를 유지하지 않는 데이터의 집합. 데이터 중복 비허용
+List|LinkedList, Vector, ArrayList|순서가 있는 데이터 집합. 데이터 중복 허용
+Queue|LinkedList, PriorityQueue|List와 유사
+Map|Hashtable, HashMap, TreeMap|키, 값의 쌍으로 이루어진 데이터 집합. 순서는 유지되지 않고, 키 중복 비허용, 값 중복 허용
+
+**1. Set 인터페이스**
+- `HashSet` : 가장 빠른 임의 접근 속도, 순서 예측 불가
+- `TreeSet` : 정렬 방법을 지정할 수 있다
+
+**2. List 인터페이스**
+- `LinkedLIst`
+    - 양방향 포인터 구조로 데이터 위치정보만 수정하면 됨
+    - 스택, 큐, 양방향 큐 등을 만들기 위한 용도
+- `Vector` : 과거에 대용량 처리를 위해 사용. 내부에서 자동으로 동기화처리가 일어나 성능 별로고 무거워서 잘 안씀
+- `ArrayList` : 단방향 포인터 구조. 각 데이터에 대한 인덱스를 가지고 있어 조회 기능에 성능 뛰어남
+
+**3. Map 인터페이스**
+- `Hashtable` : HashMap보단 느리지만 동기화 지원하고 null불가
+- `HashMap` : 중복과 순서 비허용. null값 가능
+- `TreeMap` : 정렬된 순서대로 키, 값을 저장하여 검색이 빠름
+
+### 생성자 vs setter 메서드
+- 생성자 방식 : 빈 객체를 생성하는 시점에 모든 의존 객체가 주입된다
+- 설정 메서드 방식 : 세터 메서드 이름을 통해 어떤 의존 객체가 주입되는지 알 수 있다.
+
+---
+
+## Annotation
+
+```java
+@Configuration // 스프링 설정 클래스
+@Bean // 각 메서드마다 한 개의 빈 객체 생성
+@Autowired // 해당 타입의 빈을 찾아서 필드에 할당
+```
+
+## 두 개 이상의 설정 파일 사용하기
+
+**1. 두 설정 클래스 파일을 설정한다**
+
+```java
+@Autowired
+private MemberDao memberDao;
+@Autowired
+private MemberPrinter memberPrinter;
+```
+
+```java
+ctx = new AnnotaionConfigApplicationContext(AppConf1.class, AppConf2.class);
+```
+
+AnnotaionConfigApplicationContext의 생성자의 인자는 가변 인자이기 때문에 설정 클래스 목록을 콤마로 구분해서 전달
+
+**2. @Import 에노테이션 이용**
+
+```java
+@Configuration
+@Import(AppConf2.class)
+public class AppConflmport {
+	@Bean
+	public MemberDao memberDao() {
+		return new MemberDao();
+	}
+	@Bean
+	public MemberPrinter memberPrinter() {
+		return new MemberPrinter();
+	}
+}
+```
+
+배열을 이용해서 두 개 이상의 설정 클래스도 지정할 수 있다.
+
+```java
+@Configuration
+@Import({AppConf1.class, AppConf2.class)
+public class AppConflmport {
+	
+}
+```
