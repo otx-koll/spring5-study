@@ -2,17 +2,20 @@ package spring;
 
 import java.time.LocalDateTime;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 public class MemberRegisterService {
+	
+	@Autowired
 	private MemberDao memberDao;
 	
-	// 생성자를 통해 의존 객체 주입 받음
+	public MemberRegisterService() {}
+	
 	public MemberRegisterService(MemberDao memberDao) {
-		// 주입 받은 객체를 필드에 할당
 		this.memberDao = memberDao;
 	}
 	
 	public Long regist(RegisterRequest req) {
-		// 주입 받은 의존 객체의 메서드 사용
 		Member member = memberDao.selectByEmail(req.getEmail());
 		if(member != null) {
 			throw new DuplicateMemberException("dup email" + req.getEmail());
