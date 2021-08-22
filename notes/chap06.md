@@ -44,3 +44,74 @@ public interface DisposableBean {
     void destroy() throws Exception;
 }
 ```
+Bean 객체가 `InitializingBean` 인터페이스를 구현하면 컨테이너가 초기화 과정에서 `afterPropertiesSet()` 메서드를 자동으로 실행하면서 Bean 객체를 초기화한다.
+
+Bean 객체가 `DisposableBean` 인터페이스를 구현하면 컨테이너가 소멸 과정에서 `destroy()` 메서드를 자동으로 실행하면서 Bean 객체를 소멸시킨다.
+
+대표적인 예시로 데이터베이스 커넥션 풀, 채팅 클라이언트 등등이 있다.
+
+```java
+public class Client implements InitializingBean, DisposableBean {
+    
+    private String host;
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println("Client.afterPropertiesSet() 실행");
+    }
+
+    public void send() {
+        System.out.println("Client.send() to " + host);
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        System.out.println("Client.destroy() 실행");
+    }
+}
+```
+
+```java
+@Configuration
+public class AppCtx {
+
+    @Bean
+    public Client client() {
+        Client client = new Client();
+        client.setHost("host");
+        return client;
+    }
+}
+```
+
+```java
+public class Main {
+    public static void main(String[] args) throws IOException {
+        AbstractApplicationContext ctx = 
+            new AnnotationConfigApplicationContext(AppCtx.class);
+
+            Client client = ctx.getBean(Client.class);
+            client.send();
+
+            ctx.close();
+    }
+}
+```
+
+```java
+AbstractApplicationContext prepareRefresh...
+정보: Refreshing o....AnnotationConfigApplicationContext@5cb0d902: startup...
+Client.afterPropertiesSet() 실행
+Client.send() to host
+AbstractApplicationContext doClose
+정보: Closing o....AnnotationConfigApplicationContext@5cb0d902: startup...
+Client.destroy() 실행
+```
+
+컨테이너는 Bean 객체의 생성(`Refreshing`)을 마무리한 후 `afterPropertiesSet()` 메서드를 수행시키고, 소멸(`Closing`) 가장 마지막에 `destroy()` 메서드를 수행시켰다.
+
+특히 `destroy()`의 경우 `ctx.close()` 가 수행되지 않았다면 Bean 객체의 소멸 과정도 수행되지 않았을 것임을 유추할 수 있다.
