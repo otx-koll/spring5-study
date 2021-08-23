@@ -115,3 +115,89 @@ Client.destroy() 실행
 컨테이너는 Bean 객체의 생성(`Refreshing`)을 마무리한 후 `afterPropertiesSet()` 메서드를 수행시키고, 소멸(`Closing`) 가장 마지막에 `destroy()` 메서드를 수행시켰다.
 
 특히 `destroy()`의 경우 `ctx.close()` 가 수행되지 않았다면 Bean 객체의 소멸 과정도 수행되지 않았을 것임을 유추할 수 있다.
+
+### **Bean 객체의 커스텀 초기화/소멸 메서드**
+
+모든 클래스가 `InitializingBean.afterPropertiesSet()`와 `DisposableBean.destroy()`를 구현할 수 있는 것은 아니다. 외부에서 제공 받는 클래스를 스프링 Bean 객체로 설정하는 경우 두 인터페이스를 구현할 수 없다.
+
+이럴 경우 `@Bean` 어노테이션에 `initMethod`/`destroyMethod` 속성을 지정하는 방법으로 커스텀 초기화/소멸 메서드를 설정해줄 수 있다.
+
+```java
+public class CustomClient {
+    
+    private String host;
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public void connect() {
+        System.out.println("CustomClient.connect() 실행");
+    }
+
+    public void send() {
+        System.out.println("CustomClient.send() to " + host);
+    }
+
+    public void close() {
+        System.out.println("CustomClient.close() 실행");
+    }
+}
+```
+
+```java
+@Configuration
+public class AppCtx {
+
+    @Bean(initMethod = "connect", destroyMethod = "close")
+    public CustomClient customClient() {
+        CustomClient customClient = new CustomClient();
+        customClient.setHost("host");
+        return customClient;
+    }
+}
+```
+
+```java
+AbstractApplicationContext prepareRefresh...
+정보: Refreshing o....AnnotationConfigApplicationContext@5cb0d902: startup...
+CustomClient.connect() 실행
+CustomClient.send() to host
+AbstractApplicationContext doClose
+정보: Closing o....AnnotationConfigApplicationContext@5cb0d902: startup...
+CustomClient.close() 실행
+```
+
+또한 초기화 메서드를 `@Configuration`의 Bean 등록 메서드에서 직접 호출할 수도 있다.
+
+```java
+@Configuration
+public class AppCtx {
+
+    @Bean(destroyMethod = "close")
+    public CustomClient customClient() {
+        CustomClient customClient = new CustomClient();
+        customClient.setHost("host");
+        customClient.connect();
+        return customClient;
+    }
+}
+```
+
+주의할 점은 이미 `InitializingBean`를 구현한 Bean 객체를 초기화하는 과정에선 `afterPropertiesSet()`를 호출하지 않도록 해야한다는 것이다.
+
+```java
+@Configuration
+public class AppCtx {
+
+    @Bean
+    public Client client() {    // 이미 InitializingBean 구현되어 있음
+        Client client = new Client();
+        client.setHost("host");
+        client.afterPropertiesSet();
+        return client;
+    }
+}
+```
+
+위 코드와 같은 상황에선 `afterPropertiesSet()` 메서드가 총 2회 호출되게 된다.
