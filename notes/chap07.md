@@ -12,3 +12,5 @@ pom.xml 파일에 의존 추가
     <scope>runtime</scope>
 </dependency>
 ```
+
+> 양의 정수 n의 계승은 n!으로 표현되며 n!은 1부터 n까지 숫자의 곱을 의미
