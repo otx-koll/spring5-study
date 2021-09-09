@@ -116,7 +116,7 @@ Client.destroy() 실행
 
 특히 `destroy()`의 경우 `ctx.close()` 가 수행되지 않았다면 Bean 객체의 소멸 과정도 수행되지 않았을 것임을 유추할 수 있다.
 
-### **Bean 객체의 커스텀 초기화/소멸 메서드**
+### Bean 객체의 커스텀 초기화/소멸 메서드
 
 모든 클래스가 `InitializingBean.afterPropertiesSet()`와 `DisposableBean.destroy()`를 구현할 수 있는 것은 아니다. 외부에서 제공 받는 클래스를 스프링 Bean 객체로 설정하는 경우 두 인터페이스를 구현할 수 없다.
 
@@ -201,3 +201,58 @@ public class AppCtx {
 ```
 
 위 코드와 같은 상황에선 `afterPropertiesSet()` 메서드가 총 2회 호출되게 된다.
+
+### 빈 객체의 생성과 관리 범위
+
+스프링 컨테이너는 Bean 객체를 한 개만 생성한다. 아래 코드와 같이 동일한 이름을 갖는 Bean 객체를 구하면 client1과 client2는 동일한 Bean 객체를 참조한다.
+
+```java
+Client client1 = ctx.getBean("client", Client.class);
+Client client2 = ctx.getBean("client", Client.class);
+// client1 == client2 -> true
+```
+
+한 식별자에 대해 한 개의 객체만 존재하는 Bean은 싱글톤 범위를 갖는다. 별도로 설정하지 않으면 Bean은 싱글톤 범위를 갖는다.
+
+프로토타입 범위의 Bean을 설정할 수도 있다. 프로토타입으로 지정하면 Bean 객체를 구할 때 마다 매번 새로운 객체를 생성한다.
+
+```java
+// client 빈의 범위가 프로토타입일 경우, 매번 새로운 객체 생성
+Client client1 = ctx.getBean("client", Client.class);
+Client client2 = ctx.getBean("client", Client.class);
+// client1 == client2 -> false
+```
+
+특정 Bean을 프로토타입 범위로 지정하려면 `prototype`을 갖는 `@Scope` 에노테이션을 `@Bean` 에노테이션과 함께 사용하면 된다.
+
+싱글톤 범위를 명시적으로 지정하고 싶으면 `@Scope` 에노테이션 값으로 `singleton` 을 주면 된다.
+
+```java
+import org.springframework.context.annotation.Scope;
+
+@Configuration
+public class AppCtxWithPrototype {
+
+	@Bean
+	@Scope("prototype")
+	public Client client() {
+		Client client = new Client();
+		client.setHost("host");
+		return client;
+	}
+	
+	@Bean(initMethod = "connect", destroyMethod = "close")
+	@Scope("singleton")
+	public Client2 client2() {
+		Client2 client = new Client2();
+		client.setHost("host");
+		return client;
+	}
+}
+```
+
+프로토타입 범위를 갖는 Bean은 완전한 라이프사이클을 따르지 않는다는 점을 주의해야 한다.
+
+스프링 컨테이너는 초기화 작업까지는 수행하지만, 컨테이너를 종료한다고 해서 생성한 프로토타입 Bean 객체의 소멸 메서드를 실행하진 않는다.
+
+따라서 Bean 객체 소멸 처리를 코드에서 직접 해야 한다.
