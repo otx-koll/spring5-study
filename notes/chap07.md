@@ -168,4 +168,26 @@ AOP의 기본 개념은 핵심 기능에 공통 기능을 삽입하는 것이다
 
 용어|의미
 -|-
-Advice|
+Advice|언제 공통 관심 기능을 핵심 로직에 적용할 지를 정의
+Joinpoint|Advice가 적용 가능한 지점
+Pointcut|Advice가 적용되는 지점
+Weaving|Advice를 핵심 로직 코드에 적용하는 것
+Aspect|공통으로 적용되는 기능
+
+### Advice 종류
+종류|설명
+-|-
+Before Advice|대상 객체 메서드 호출 전에 공통 기능 실행
+After Returning Advice|대상 객체 메서드가 익셉션 없이 실행 된 이후 공통 기능 실행
+After Throwing Advice|대상 객체 메서드를 실행하는 도중 익셉션 발생 시 공통 기능 실행
+After Advice|익셉션 발생 여부 상고나없이 대상 객체 메서드 실행 후 공통 기능 실행
+Around Advice|대상 객체 메서드 실행 전, 후 또는 익셉션 발생 시점에 공통 기능 실행
+
+이 중에서 제일 자주 사용되는 것은 `Aroung Advice`이다.
+
+## 스프링 AOP 구현
+- Aspect로 사용할 클래스에 `@Aspect` 에노테이션을 붙인다.
+- `@Pointcut` 에노테이션으로 공통 기능을 적용할 지점을 정의한다.
+- 공통 기능을 구현한 메서드에 `@Around` 에노테이션을 적용한다.
+
+### Aspect
