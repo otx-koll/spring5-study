@@ -218,3 +218,5 @@ public class ExeTimeAspect {
 }
 ```
 위 코드는 메서드 실행 전/후(Around Advice)에 사용할 공통 기능(Aspect)이다.
+
+`@Pointcut`은 공통 기능을 적용할 대상을 설정한다.
