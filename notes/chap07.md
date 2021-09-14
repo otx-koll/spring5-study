@@ -220,3 +220,5 @@ public class ExeTimeAspect {
 위 코드는 메서드 실행 전/후(Around Advice)에 사용할 공통 기능(Aspect)이다.
 
 `@Pointcut`은 공통 기능을 적용할 대상을 설정한다.
+
+`@Around` 에노테이션은 Around Advice를 설정한다. `@Around`에노테이션 값이 "publicTarget()"인데 이는 publicTarget() 메서드에 정의한 `Pointcut`에 공통 기능을 적용한다는 것을 의미한다.
