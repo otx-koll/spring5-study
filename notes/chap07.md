@@ -217,8 +217,59 @@ public class ExeTimeAspect {
 
 }
 ```
-위 코드는 메서드 실행 전/후(Around Advice)에 사용할 공통 기능(Aspect)이다.
+`@Aspect` 에노테이션을 적용하여 Aspect로 사용할 클래스임을 지정하였다.
 
-`@Pointcut`은 공통 기능을 적용할 대상을 설정한다.
+`@Pointcut` 에노테이션으로 공통 기능을 적용할 대상을 설정한다.
 
-`@Around` 에노테이션은 Around Advice를 설정한다. `@Around`에노테이션 값이 "publicTarget()"인데 이는 publicTarget() 메서드에 정의한 `Pointcut`에 공통 기능을 적용한다는 것을 의미한다.
+`@Around` 에노테이션은 [Around Advice](#Advice-종류)를 설정한다. `@Around`에노테이션 값이 "publicTarget()"인데 이는 publicTarget() 메서드에 정의한 `Pointcut`에 공통 기능을 적용한다는 것을 의미한다.
+
+`ProceedingJoinPoint` 타입 파라미터는 프록시 대상 객체의 메서드를 호출할 때 사용한다. `proceed()` 메서드를 사용해서 실제 대상 객체의 메서드를 호출한다. 
+
+### Configuration
+```java
+@Configuration
+@EnableAspectJAutoProxy
+public class AppCtx {
+	
+	@Bean
+	public ExeTimeAspect exeTimeCalculator() {
+		return new ExeTimeAspect();
+	}
+	
+	@Bean
+	public Calculator calculator() {
+		return new RecCalculator();
+	}
+}
+```
+
+`@Aspect` 에노테이션을 붙인 클래스를 공통 기능으로 적용하려면 `@EnableAspectJAutoProxy` 에노테이션을 `@Configuration` 설정 클래스에 붙여야 한다. 이 에노테이션을 추가하면 스프링은 `@Aspect` 에노테이션이 붙은 빈 객체를 찾아서 빈 객체의 `@Pointcut`, `@Around` 설정을 사용한다. 
+
+### 실행 결과
+```java
+public class MainAspect {
+	
+	public static void main(String[] args) {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(AppCtx.class);
+		
+		Calculator cal = ctx.getBean("calculator", Calculator.class);
+		long fiveFact = cal.factorial(5);
+		System.out.println("cal.factorial(5) = " + fiveFact);
+		System.out.println(cal.getClass().getName());
+		ctx.close();
+	}
+	
+}
+```
+
+```java
+RecCalculator.factorial([5]) 실행 시간 : 26500 ns
+cal.factorial(5) = 120
+jdk.proxy2.$Proxy18
+```
+
+첫 번째 줄은 `ExeTimeAspect` 클래스의 `measure()` 메서드가 출력한 것이다.
+
+세 번째 줄은 `MainAspect` 클래스의 `System.out.println(cal.getClass().getName());`에서 출력한 코드이다. 
+
+
