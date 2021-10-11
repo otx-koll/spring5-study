@@ -270,6 +270,128 @@ jdk.proxy2.$Proxy18
 
 첫 번째 줄은 `ExeTimeAspect` 클래스의 `measure()` 메서드가 출력한 것이다.
 
-세 번째 줄은 `MainAspect` 클래스의 `System.out.println(cal.getClass().getName());`에서 출력한 코드이다. 
+세 번째 줄은 `MainAspect` 클래스의 `cal.getClass().getName();`에서 출력한 코드이다. 코드를 보면 `Calculator` 타입이 `RecCalculator` 클래스가 아니고 `$Proxy18`임을 알 수 있다. 즉, 이 타입은 스프링이 생성한 프록시 타입이다.
+
+만약 AOP를 적용하지 않았다면 리턴한 객체는 프록시가 아닌 `RecCalculator` 타입이다. `AppCtx` 클래스에서 `exeTimeAspect()` 메서드를 주석처리 후, 다시 `MainAspect` 클래스를 실행해보면 다음과 같은 메시지가 출력 된다.
+
+```java
+cal.factorial(5) = 120
+chap07.RecCalculator
+```
+
+
+
+### ProceedingJoinPoint 메서드
+
+`Around Advice`에서 사용할 공통 기능 메서드는 대부분 파라미터로 전달받은 `ProceedingJoinPoint`의 `proceed()` 메서드만 호출하면 된다. 
+
+호출되는 대상 객체에 대한 정보, 실행되는 메서드에 대한 정보, 메서드를 호출 할 때 전달된 인자에 대한 정보가 필요할 때가 있다. 이때 `ProceedingJoinPoint` 인터페이스는 다음 메서드를 제공한다.
+
+**ProceedingJoinPoint 인터페이스 제공 메서드**
+
+메서드|설명
+-|-
+Signature getSignature()|호출되는 메서드에 대한 정보를 구한다.
+Object getTarget()|대상 객체를 구한다.
+Object[] getArgs()|파라미터 목록을 구한다.
+
+**org.aspectj.lang.Signature 인터페이스 제공 메서드**
+메서드|설명
+-|-
+String getName()|호출되는 메서드의 이름을 구한다.
+String toLongString()|호출되는 메서드를 완전하게 표현한 문장을 구한다. (메서드의 리턴 타입, 파라미터 타입 모두 표시됨)
+String toShortString()|호출되는 메서드를 축약해서 표현한 문장을 구한다. (기본 구현은 메서드의 이름만 구함)
+
+**프록시 생성 방식**
+Bean 객체가 인터페이스를 상속할 때 인터페이스가 아닌 클래스를 이용하여 프록시를 생성하고자 한다면 `@EnableAspectJAutoProxy(proxyTargetClass = true)`
+
+**execution 명시자 표현식**
+
+execution 명시자는 Advice를 적용할 메서드를 지정할 때 사용한다. 기본 형식은 아래와 같다.
+
+```java
+execution(수식어패턴? 리턴타입패턴 클래스이름패턴?메서드일므패턴(파라미터패턴))
+```
+
+- 수식어패턴은 생략 가능하며 public, protected  등이 온다.
+- 리턴타입패턴은 리턴 타입을 명시한다.
+- 클래스이름패턴과 메서드일므패턴은 클래스 이름 및 메서드 이름을 패턴으로 명시한다.
+- 파라미터패턴은 매칭될 파라미터에 대해서 명시한다.
+- 각 패턴은 `*` 을 이용하여 모든 값을 표현할 수 있고, `..*점 두 개)` 를 이용하여 0개 이상이라는 의미를 표현할 수 있다.
+
+예|설명
+-|-
+execution(public void set*(..))|리턴 타입이 void, 메서드 이름 set으로 시작, 파라미터 0개 이상인 메서드 호출, 파타미터 부분에 '..'을 사용하여 파라미터 0개 이상
+execution(* chap07.*.*())|chap07 패키지의 타입에 속한 파라미터가 없는 모든 메서드 호출
+execution(* chap07..*.*(..))|chap07 패키지 및 하위 패키지에 있는, 파라미터가 0개 이상인 메서드 호출, 패키지 부분에 '..'을 사용하여 해당 패키지 또는 하위 패키지 표현
+execution(Long chap07 .Calculator.factorial(..))|리턴 타입이 Long인 Calculator 타입의 factorial() 메서드 호출
+execution(* get*(*))|이름이 get으로 시작하고 파라미터가 한 개인 메서드 호출
+execution(* get*(*, *))|이름이 get으로 시작하고 파라미터가 두 개인 메서드 호출
+execution(* read*(Integer, ..))|메서드 이름이 read로 시작, 첫 번째 파라미터 타입이 Integer, 한 개 이상의 파라미터를 갖는다
+
+## Advice 적용 순서 지정
+`@Order` 에노테이션을 사용하면 적용 순서를 지정할 수 있다. `@Aspect`에노테이션과 함께 `@Order`에노테이션을 클래스에 붙이면 `@Order`에노테이션에 지정한 값에 따라 적용 순서를 결정한다.
+
+`@Order` 에노테이션의 값이 작으면 먼저 적용하고, 크면 나중에 적용한다. 예를 들어 아래와 같이 두 `Aspect` 클래스에 `@Order`에노테이션을 적용했다고 하자.
+
+```java
+@Aspect
+@Order(1)
+public class ExeTimeAspect {
+	...
+}
+```
+```java
+@Aspect
+@Order(2)
+public class CacheAspect {
+	...
+}
+```
+원래 `CacheAspect` 프록시가 먼저 적용됐었지만 이렇게 적용시키면 `ExeTImeAspect` 프록시가 먼저 적용된다.
+
+## @Around의 Pointcut 설정과 @Pointcut 재사용
+`@Pointcut`에노테이션이 아닌 `@Around`에노테이션에 execution 명시자를 직접 지정할 수도 있다.
+
+```java
+@Aspect
+public class CacheAspect {
+	@Around("execution(public * chap07..*(..))")
+	public Object executie(ProceedingJoinPoint joinPoint) throws Throwable {
+		...
+	}
+}
+```
+만약 같은 Pointcut을 여러 Advice가 함께 사용한다면 곹오 Pointcut을 재사용할 수도 있다. ExeTimeAspect코드를 다시 보자.
+```java
+@Aspect
+public class ExeTimeAspect {
+
+	@Pointcut("execution(public * chap07..*(..))")
+	private void publicTarget() {
+	}
+
+	@Around("publicTarget()")
+	public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
+		...
+	}
+```
+다른 클래스에 위치한 `@Around`에노테이션에서 `publicTarget()`메서드의 Pointcut을 사용하고 싶다면 private에서 public으로 바꾸면 된다.
+
+그리고 해당 `Pointcut`의 완전한 클래스 이름을 포함한 메서드 이름을 `@Around`에노테이션에서 사용하면 된다.
+
+```java
+@Aspect
+public class CacheAspect {
+
+	@Around("aspect.ExeTimeAspect.publicTarget()")
+	public Object execute(ProceedingJoinPoint joinPoint) throws Throwable {
+		...
+	}
+```
+같은 패키지에 위치한다면 패키지 이름 없이 간단한 클래스 이름으로 설정할 수 있다.
+
+이처럼 여러 Aspect에서 공통으로 사용하는 Pointcut이 있다면 별도 클래스에 Pointcut을 정의하고, 각 Aspect 클래스에서 해당 Pointcut을 사용하도록 구성하면 Pointcut 관리가 편해진다.
+
 
 
