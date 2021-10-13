@@ -254,5 +254,3 @@ jdbcTemplate.update((Connection con) -> {
 		return pstmt;
 }, keyHolder);
 ```
-
-아 뭐고ㅡㅡ오류뜨네 
