@@ -255,4 +255,42 @@ jdbcTemplate.update((Connection con) -> {
 }, keyHolder);
 ```
 
-와 대박 드디어찾음
+## 스프링의 익셉션 변환 처리
+
+`DataAccessException`은 스프링이 제공하는 익셉션 타입으로 데이터 연결에 문제가 있을 때 스프링 모듈이 발생시킨다. 스프링은 왜 `SQLException`을 그대로 전파하지 않고 `DataAccessException`으로 변환하는 이유가 무엇일까?
+
+주된 이유는 연동 기술에 상관 없이 동일하게 익셉션을 처리할 수 있도록 하기 위함이다.
+
+```java
+// JDBC 연동 코드 익셉션
+try {
+    ...
+} catch (SQLException ex) {
+    ...
+}
+
+// Hibernate 연동 코드 익셉션
+try {
+    ...
+} catch (HibernateException ex) {
+    ...
+}
+
+// JPA 연동 코드 익셉션
+try {
+    ...
+} catch (PersistenceException ex) {
+    ...
+}
+```
+
+스프링은 JDBC 뿐만 아니라 JPA, 하이버네이트 등 다양한 연동 기능을 지원하고 있다. 그런데 각각의 구현 기술마다 익셉션을 다르게 처리해야한다면 유지보수가 어려울 것이다. 스프링이 이 단점을 해결하기 위해 DataAccessException으로 자동 변환을 진행함으로써 구현 기술에 상관없이 동일한 코드로 익셉션을 처리할 수 있게 된다.
+
+```java
+try {
+    ...
+} catch (DataAccessException ex) {
+    ...
+}
+```
+`DataAccessException`는 `RuntimeException`에 속하므로, 예외처리가 필요한 경우에만 익셉션을 처리해주면 된다.
