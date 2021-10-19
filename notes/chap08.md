@@ -294,3 +294,47 @@ try {
 }
 ```
 `DataAccessException`는 `RuntimeException`에 속하므로, 예외처리가 필요한 경우에만 익셉션을 처리해주면 된다.
+
+## 트랜잭션 처리
+
+데이터베이스는 기본적으로 ACID(원자성, 일관성, 독립성, 지속성)이 지켜져야만 한다. ACID를 지키기 위해 데이터베이스 변경작업을 하나의 단위(트랜잭션)으로 구분하고, 해당 트랜잭션 내에 묶인 쿼리 중 하나라도 반영에 실패할 경우 작업 전체의 실패로 간주하고 트랜잭션 전체를 되돌려야 한다.
+
+되돌리는 행위를 롤백(rollback), 전체(트랜잭션) 반영 성공시 DB에 실제로 반영하는 행위를 커밋(commit)이라고 부른다.
+
+JDBC를 이용한 코드에서도 Connection의 메서드들을 통해 트랜잭션을 관리해주어야 한다.
+
+```java
+try {
+    Connection conn = DriverManager.getConnection(jdbcUrl, user, pw);
+    conn.setAutoCommit(false);  // 트랜잭션 범위 시작 지점
+    ...쿼리 실행
+    conn.commit();  // 트랜잭션 범위 종료 지점 및 커밋
+} catch(DataAccessException ex) {
+    if (conn != null) {
+        try {
+            conn.rollback(); // 트랜잭션 작업들 중 에러 발생시 롤백
+        } catch (DataAccessException ex) {
+        }
+    }
+} finally {
+    if (conn != null) {
+        try {
+            conn.close();
+        } catch (DataAccessException ex) {
+        }
+    }
+}
+```
+스프링이 제공하는 `@Transactional` 어노테이션을 사용하면 매우 간단하게 트랜잭션을 관리해줄 수 있다.
+
+```java
+@Transactional
+public void changePassword(String email, String oldPwd, String newPwd) {
+	Member member = memberDao.selectByEmail(email);
+	if (member == null) 
+		throw new MemberNotFoundException();
+	member.changePassword(oldPwd, newPwd);
+
+	memberDao.update(member);
+}
+```
