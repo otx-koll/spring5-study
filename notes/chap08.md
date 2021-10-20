@@ -338,3 +338,4 @@ public void changePassword(String email, String oldPwd, String newPwd) {
 	memberDao.update(member);
 }
 ```
+`@Transactional` 에노테이션이 붙은 `changePassword()`메서드를 동일한 트랜잭션 범위에서 실행한다. 따라서 `memberDao.selectByEmail()`에서 실행하는 쿼리와 `member.changePassword()`에서 실행하는 쿼리는 한 트랙잭션에 묶인다.
