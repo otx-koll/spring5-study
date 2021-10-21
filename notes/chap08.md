@@ -339,3 +339,32 @@ public void changePassword(String email, String oldPwd, String newPwd) {
 }
 ```
 `@Transactional` 에노테이션이 붙은 `changePassword()`메서드를 동일한 트랜잭션 범위에서 실행한다. 따라서 `memberDao.selectByEmail()`에서 실행하는 쿼리와 `member.changePassword()`에서 실행하는 쿼리는 한 트랙잭션에 묶인다.
+
+`@Transactional` 에노테이션이 제대로 동작하려면 다음의 두 가지 내용을 스프링 설정에 추가해야 한다.
+
+- 플랫폼 트랜잭션 매니저(PlatformTransactionManager Bean) Bean 설정
+- `@Transactional` 어노테이션 활성화
+
+```java
+@Configuration
+@EnableTransactionManagement
+public class AppCtx {
+
+    @Bean(destroyMethod = "close")
+    public DataSource dataSource() {
+        ... 생략
+        return ds;
+    }
+
+    @Bean
+    public PlatformTransactionManager transactionManaber() {
+        DataSourceTransactionManager tm = new DataSourceTransactionManager();
+        tm.setDataSource(dataSource());
+        return tm;
+    }
+}
+```
+
+`PlatformTransactionManager`는 스프링이 제공하는 트랜잭션 매니저 인터페이스다. 위 코드에서 살펴볼 수 있듯 `setDataSource()` 메서드를 통해 트랜잭션 연동에 사용할 DataSource를 지정한다.
+
+`@EnableTransactionManagement` 어노테이션은 `@Transactional` 어노테이션이 붙은 메서드를 트랜잭션 범위에서 실행하는 기능을 활성화 시킨다.
