@@ -136,3 +136,54 @@ public class MvcConfig implements WebMvcConfigurer {
 </web-app>
 ```
 
+## 코드 구현
+
+```java
+@Controller
+public class HelloController {
+
+	@GetMapping("/hello")
+	public String hello(Model model, @RequestParam(value="name", required=false) String name) {
+		model.addAttribute("greeting", "안녕하세요, " + name);
+		return "hello";
+	}
+}
+```
+
+- `@Controller` 애노테이션을 적용한 클래스는 스프링 MVC에서 컨트롤러로 사용한다.
+
+- `@GetMapping` 애노테이션은 메서드가 처리할 요청 경로를 지정한다. 위 코드의 경우 `/hello` 경로로 들어온 요청을 `hello()`메서드를 이용해서 처리한다고 설정했다. 이름에서 알 수 있듯이 HTTP 요청 메서드 중 GET 메서드에 대한 매핑을 설정한다.
+
+- Model 파라미터는 컨트롤러의 처리 결과를 뷰에 전달할 때 사용한다.
+
+- `@RequestParam` 애노테이션은 HTTP 요청 파라미터의 값을 메서드의 파라미터로 전달할 때 사용된다. 위 코드의 경우 name 요청 파라미터의 값을 name 파라미터에 전달한다. 
+
+- `greeting`이라는 모델 속성에 값을 설정한다.
+
+Controller란 웹 요청을 처리하고 그 결과를 뷰에 전달하는 스프링 Bean 객체이다. 스프링 컨트롤러로 사용될 클래스는 `@Controller` 애노테이션을 붙여야 하고, `@GetMapping` 애노테이션이나 `@PostMapping` 애노테이션과 같은 매핑 애노테잇녀을 이용하여 처리할 경로를 지정해줘야 한다.
+
+```java
+@Configuration
+public class ControllerConfig {
+	@Bean
+	public HelloController helloController() {
+		return new HelloController();
+	}
+}
+```
+`HelloController`를 스프링 Bean으로 등록하였다. 그리고 컨트롤러가 생성한 결과를 보여줄 뷰 코드를 구현한다. `src/main/webapp/WEB-INF`폴더에 view폴더를 만들어 view폴더에 `hello.jsp`파일을 추가한다.
+
+```jsp
+<%@ page contentType="text/html; charset=utf-8" %>
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Hello</title>
+</head>
+<body>
+	인사말:${greeting}
+</body>
+</html>
+```
+
+`${greeting}`표현식은 컨트롤러 구현에서 Model에 추가한 속성의 이름인 `greeting`과 동일하다. 컨트롤러에서 설정한 속성을 뷰 JSP 코드에서 접글할 수 있는 이유는 스프링 MVC 프레임워크가 모델에 추가한 소성을 JSP 코드에서 접근할 수 있게 `HttpServletRequest`에 옮겨주기 때문이다.
