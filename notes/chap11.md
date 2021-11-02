@@ -270,3 +270,193 @@ public class MvcConfig implements WebMvcConfigurer {
 }
 ```
 
+## 커맨드 객체 : 중첩, 콜렉션 프로퍼티
+
+스플이 MVC는 커맨드 객체가 리스트 타입의 프로퍼티를 가졌거나 중첩 프로퍼티를 가진 경우에도 요청 파라미터의 값을 알맞게 커맨드 객체에 설정해주는 기능을 제공한다. 규칙은 아래와 같다.
+
+- HTTP 요청 파라미터 이름이 `프로퍼티이름[인덱스]`형식이면 List 타입 프로퍼티의 값 목록으로 처리
+
+- HTTP 요청 파라미터 이름이 `프로퍼티이름.프로퍼티이름`과 같은 형식이면 중첩 프로퍼티 값을 처리
+
+```java
+public class AnsweredData {
+	
+	private List<String> responses;
+	private Respondent res;
+	
+	public List<String> getResponses() {
+		return responses;
+	}
+	public void setResponses(List<String> responses) {
+		this.responses = responses;
+	}
+	public Respondent getRes() {
+		return res;
+	}
+	public void setRes(Respondent res) {
+		this.res = res;
+	}
+	
+}
+```
+
+```html
+<!-- 질문 응답지 -->
+<p>
+	당신의 역할
+	<input type="text" name="responses[0]">
+</p>
+<p>
+	자주 사용하는 개발 도구
+	<input type="text" name="responses[1]">
+</p>
+```
+
+각 `input` 태그의 `name` 속성은 각 index에 맞게 값이 매핑된다. 
+
+```java
+@Controller
+@RequestMapping("/survey")
+public class SurveyController {
+	...
+	@PostMapping
+	public String submit(@ModelAttribute("ansData") AnsweredData data) {
+		return "survey/submitted";
+	}
+}
+```
+
+```html
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+...
+<p>
+	<c:forEach var="response" items="${ansData.responses}" varStatus="status">
+	<li>${status.index + 1}번 문항: ${response}</li>
+	</c:forEach>
+</p>
+<p>응답자 위치: ${ansData.res.location}</p>
+<p>응답자 나이: ${ansData.res.age}</p>
+```
+
+위 코드를 보면 폼에서 전송한 데이터가 커맨드 객체에 알맞게 저장된 것을 확인할 수 있다. 
+
+## Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
+질문 응답지를 일일히 작성하는 것도 있지만, Model을 통해 컨트롤러에서 뷰에 데이터를 전달하여 작성할 수도 있다. 이때 사용하는 것이 `Model`이다.
+
+- 요청 매핑 애노테이션이 적용된 메서드의 파라미터로 `Model`을 추가
+
+- `Model` 파라미터의 `addAttribute()` 메서드로 뷰에서 사용할 데이터 전달
+
+`addAttribute()` 메서드의 첫 번째 파라미터는 속성 이름이다. 뷰 코드는 이 이름을 사용해서 데이터에 접근한다. 표현식은 다음과 같다.
+
+```html
+${속성 이름}
+```
+
+```java
+public class Question {
+
+	private String title;
+	private List<String> options;
+	
+	public Question(String title, List<String> options) {
+		this.title = title;
+		this.options = options;
+	}
+	
+	public Question(String title) {
+		this(title, Collections.<String>emptyList());
+	}
+
+	public String getTitle() {
+		return title;
+	}
+	
+	public List<String> getOptions() {
+		return options;
+	}
+	
+	public boolean isChoice() {
+		return options != null && !options.isEmpty();
+	}
+	
+}
+```
+
+```java
+@Controller
+@RequestMapping("/survey")
+public class SurveyController {
+	@GetMapping
+	public String form(Model model) {
+		List<Question> questions = createQuestions();
+		model.addAttribute("questions", questions);
+		return "survey/surveyForm";
+	}
+	
+	private List<Question> createQuestions() {
+		Question q1 = new Question("당신의 역할?", Arrays.asList("서버", "프론트", "풀스택"));
+		Question q2 = new Question("많이 사용하는 개발도구?", Arrays.asList("이클립스", "인텔리J"));
+		Question q3 = new Question("하고싶은 말");
+		return Arrays.asList(q1, q2, q3);
+	}
+	...
+}
+```
+
+```html
+<c:forEach var="q" items="${questions}" varStatus="status">
+    <p>
+        ${status.index + 1}. ${q.title}<br/>
+        <c:if test="${q.choice}">
+            <c:forEach var="option" items="${q.options}">
+            <label><input type="radio" 
+                           name="responses[${status.index}]" value="${option}">
+                ${option}</label>
+            </c:forEach>
+        </c:if>
+        <c:if test="${! q.choice }">
+        <input type="text" name="responses[${status.index}]">
+        </c:if>
+    </p>
+</c:forEach>
+```
+
+## ModelAndView를 통한 뷰 선택과 모델 전달
+
+지금까지 구현한 컨트롤러의 특징은 두 가지가 있다.
+
+- Model을 이용해서 뷰에 전달할 데이터를 설정
+- 결과를 보여줄 뷰 이름을 리턴
+
+`ModelAndView`를 사용하면 이 두 가지를 한 번에 처리 가능하다. `ModelAndView`는 모델과 뷰 이름을 함께 제공한다. 요청 매핑 애노테이션을 적용한 메서드는 `String` 타입 대신 `ModelAndView`를 리턴할 수 있다.
+
+```java
+@GetMapping
+public ModelAndView form(Model model) {
+	List<Question> questions = createQuestions();
+	ModelAndView mav = new ModelAndView();
+	mav.addObject("questions", questions);
+	mav.setView("survey/surveyForm");
+	return mav;
+}
+```
+
+뷰에 전달할 모델 데이터는 `addObject()` 메서드로 추가하고, 뷰 이름은 `setViewName()` 메서드를 이용해 지정한다.
+
+## GET 방식과 POST 방식과 동일한 이름 커맨드 객체 사용
+
+`<form:form>` 태그를 사용하려면 커맨드 객체가 존재해야 한다. 폼 표시 요청이 왔을 때에도 커맨드 객체를 생성해서 모델에 저장해야 한다. 커맨드 객체를 파라미터로 추가하면 좀 더 간단해진다.
+
+```java
+@PostMapping("/register/step2")
+public String handleStep2(@RequestParam(value="agree", defaultValue="false") Boolean agree, 
+	// Model model 기존 코드
+	RegisterRequest registerRequest) {
+	if (!agree)
+		return "register/step1";
+	// model.addAttribute("registerRequest", new RegisterRequest());
+	return "register/step2";
+}
+```
+
