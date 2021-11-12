@@ -194,5 +194,130 @@ public class RegisterRequestValidator implements Validator {
 	}
 }
 ```
+- `supports()` 메서드는 파라미터로 전달받은 clazz 객체가 RegisterRequest 클래스로 타입 변환이 가능한지 확인한다. 
+- `validate()` 메서드는 두 개의 파라미터를 갖는데 targer 파라미터는 검사 대상 객체이고 errors 파라미터는 검사 결과 에러 코드를 설정하기 위한 객체이다. validate() 메서드는 보통 다음과 같이 구현한다.
 
+	- 검사 대상 객체의 특정 프로퍼티나 상태가 올바른지 검사
+	- 올바르지 않으면 Error의 `rejectValue()` 메서드를 이용해서 에러 코드 저장
 
+`rejectValue()` 메서드는 첫 번째 파라미터로 프로퍼티의 이름을 전달받고, 두 번쨰 파라미터로 에러 코드를 전달받는다. 
+
+```java
+ValidationUtils.rejectIfEmptyOrWhitespace(errors, "name", "required");
+```
+
+`Validatetionutils` 클래스는 객체의 값 검증 코드를 간결하게 작성할 수 있도록 도와준다. 검사 대상 객체의 "name" 프로퍼티가 null이거나 공백문자로만 되어 있는 경우 "name" 프로퍼티의 에러 코드로 "required"를 추가한다. 위 코드는 아래 코드와 동일하다.
+
+```java
+String name = regReq.getName();
+if (name == null || name.trim().isEmpty()) {
+	errors.rejectValue("name", "required");
+}
+```
+
+### 커맨드 객체의 에러 메시지 출력
+
+Errors에 에러 코드를 추가하면 `<form:errors>`태그를 사용해서 에러에 해당하는 메시지를 출력할 수 있다.
+
+```html
+<label><spring:message code="email" />:<br>
+<form:input path="email" />
+<form:errors path="email"/>
+</label>
+```
+
+`label.properties`에 다음 메시지를 추가한다.
+
+```
+required=필수항목입니다.
+bad.email=이메일이 올바르지 않습니다.
+duplicate.email=중복된 이메일입니다.
+nomatch.confirmPassword=비밀번호와 확인이 일치하지 않습니다.
+```
+
+`<form:errors>` 태그의 주요 속성은 다음과 같다.
+
+태그|속성
+-|-
+element| 각 에러 메시지를 출력할 떄 사용할 HTML 태그. 기본 값은 span이다.
+delimiter | 각 에러 메시지를 구분할 떄 사용하는 HTML 태그. 기본 값은 `<br/>`이다.
+
+## Bean Validation을 이용한 값 검증 처리
+
+`@Valid`에노테이션을 사용하면 `Validator` 작성 없이 애노테이션만으로 커맨드 객체의 값 검증을 처리할 수 있다.
+
+Bean Validation이 제공하는 에노테이션을 이용해서 커맨드 객체의 값을 검증하는 방법은 다음과 같다.
+
+- Bean Validation과 관련된 의존을 설정에 추가
+- 커맨드 객체에 `@NotNull`, `@Digits`등의 에노테이션을 이용해서 검증 규칙을 설정
+
+첫 번째로 해야 할 작업은 Bean Validation에 관련 의존을 추가하는 것이다. Hibernate Validator를 사용할 것이기 때문에 pom.xml에 의존설정을 추가한다.
+
+```xml
+<dependency>
+	<groupId>javax.validation</groupId>
+	<artifactId>validation-api</artifactId>
+	<version>1.1.0.Final</version>
+</dependency>
+<dependency>
+	<groupId>org.hibernate</groupId>
+	<artifactId>hibernate-validator</artifactId>
+	<version>5.4.2.Final</version>
+</dependency>
+```
+
+Bean Validation과 프로바이더가 제공하는 에노테이션을 이용해서 값 검증 규칙을 설정할 수 있다.
+
+```java
+public class RegisterRequest {
+	@NotBlank
+	@Email
+	private String email;
+	@Size(min = 6)
+	private String password;
+	@NotEmpty
+	private String confirmPassword;
+	@NotEmpty
+	private String name;
+```
+
+그 다음으로는 Bean Validation 에노테이션을 적용한 커맨드 객체를 검증할 수 있는 `OptionalValidatorFactoryBean` 클래스를 Bean으로 등록한다.
+
+`@EnableWebMvc` 에노테이션을 사용하면 `OptionalValidatorFactoryBean`을 글로벌 범위 Validator로 등록한다.
+
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+	...
+}
+```
+
+그 다음 `@Valid`에노테이션을 붙여서 글로벌 범위 Validator로 검증한다.
+
+```java
+@PostMapping("/register/step3")
+public String handleStep3(@Valid RegisterRequest regReq, Errors errors) {
+	...
+}
+```
+아래와 같이 Validator를 따로 설정하면 글로벌 범위 Validator로 사용하지 않는다.
+
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+	@Override
+	public Validator getValidator() {
+		return new RegisterRequestValidator();
+	}
+}
+```
+메시지 프로퍼티 파일에 규칙에 맞게 에러 메시지를 등록하면 기본 에러 메시지 대신 원하는 에러 메시지를 출력할 수 있다. `label.properties`에 다음과 같이 추가한다.
+
+```
+NotBlank=필수 항목입니다. 공백 문자는 허용하지 않습니다.
+NotEmpty=필수 항목입니다.
+Size.password=암호 길이는 6자 이상이어야 합니다.
+Email=올바른 이메일 주소를 입력해야 합니다.
+```
