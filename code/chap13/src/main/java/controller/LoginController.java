@@ -23,14 +23,21 @@ public class LoginController {
     public void setAuthService(AuthService authService) {
         this.authService = authService;
     }
-    
+
     @GetMapping
-    public String form(LoginCommand loginCommand) {
+    public String form(LoginCommand loginCommand,
+    		@CookieValue(value = "REMEMBER", required = false) Cookie rCookie) {
+		if (rCookie != null) {
+			loginCommand.setEmail(rCookie.getValue());
+			loginCommand.setRememberEmail(true);
+		}
     	return "login/loginForm";
     }
-
+    
     @PostMapping
-    public String submit(LoginCommand loginCommand, Errors errors) {
+    public String submit(
+    		LoginCommand loginCommand, Errors errors, HttpSession session,
+    		HttpServletResponse response) {
         new LoginCommandValidator().validate(loginCommand, errors);
         if (errors.hasErrors()) {
             return "login/loginForm";
@@ -39,6 +46,18 @@ public class LoginController {
             AuthInfo authInfo = authService.authenticate(
                     loginCommand.getEmail(),
                     loginCommand.getPassword());
+            
+            session.setAttribute("authInfo", authInfo);
+
+			Cookie rememberCookie = 
+					new Cookie("REMEMBER", loginCommand.getEmail());
+			rememberCookie.setPath("/");
+			if (loginCommand.isRememberEmail()) {
+				rememberCookie.setMaxAge(60 * 60 * 24 * 30);
+			} else {
+				rememberCookie.setMaxAge(0);
+			}
+			response.addCookie(rememberCookie);
 
             return "login/loginSuccess";
         } catch (WrongIdPasswordException e) {
@@ -46,46 +65,4 @@ public class LoginController {
             return "login/loginForm";
         }
     }
-
-//    @GetMapping
-//    public String form(LoginCommand loginCommand,
-//    		@CookieValue(value = "REMEMBER", required = false) Cookie rCookie) {
-//		if (rCookie != null) {
-//			loginCommand.setEmail(rCookie.getValue());
-//			loginCommand.setRememberEmail(true);
-//		}
-//    	return "login/loginForm";
-//    }
-    
-//    @PostMapping
-//    public String submit(
-//    		LoginCommand loginCommand, Errors errors, HttpSession session,
-//    		HttpServletResponse response) {
-//        new LoginCommandValidator().validate(loginCommand, errors);
-//        if (errors.hasErrors()) {
-//            return "login/loginForm";
-//        }
-//        try {
-//            AuthInfo authInfo = authService.authenticate(
-//                    loginCommand.getEmail(),
-//                    loginCommand.getPassword());
-//            
-//            session.setAttribute("authInfo", authInfo);
-//
-//			Cookie rememberCookie = 
-//					new Cookie("REMEMBER", loginCommand.getEmail());
-//			rememberCookie.setPath("/");
-//			if (loginCommand.isRememberEmail()) {
-//				rememberCookie.setMaxAge(60 * 60 * 24 * 30);
-//			} else {
-//				rememberCookie.setMaxAge(0);
-//			}
-//			response.addCookie(rememberCookie);
-//
-//            return "login/loginSuccess";
-//        } catch (WrongIdPasswordException e) {
-//            errors.reject("idPasswordNotMatching");
-//            return "login/loginForm";
-//        }
-//    }
 }
